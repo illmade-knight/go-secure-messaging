@@ -1,14 +1,14 @@
 package transport
 
 type SecureEnvelope struct {
-	SenderID    string `json:"sender_id"`
-	RecipientID string `json:"recipient_id"`
+	SenderID    string `json:"senderId"`
+	RecipientID string `json:"recipientId"`
 
 	// The AES-encrypted SharedPayload.
-	EncryptedData []byte `json:"encrypted_data"`
+	EncryptedData []byte `json:"encryptedData"`
 
 	// The RSA-encrypted AES symmetric key.
-	EncryptedSymmetricKey []byte `json:"encrypted_symmetric_key"`
+	EncryptedSymmetricKey []byte `json:"encryptedSymmetricKey"`
 
 	// The signature of the EncryptedData.
 	Signature []byte `json:"signature"`
