@@ -3,6 +3,7 @@ package transport
 type SecureEnvelope struct {
 	SenderID    string `json:"senderId"`
 	RecipientID string `json:"recipientId"`
+	MessageID   string `json:"messageId"`
 
 	// The AES-encrypted SharedPayload.
 	EncryptedData []byte `json:"encryptedData"`
