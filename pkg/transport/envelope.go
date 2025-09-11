@@ -1,9 +1,11 @@
 package transport
 
+import "github.com/illmade-knight/go-secure-messaging/pkg/urn"
+
 type SecureEnvelope struct {
-	SenderID    string `json:"senderId"`
-	RecipientID string `json:"recipientId"`
-	MessageID   string `json:"messageId"`
+	SenderID    urn.URN `json:"senderId"`
+	RecipientID urn.URN `json:"recipientId"`
+	MessageID   string  `json:"messageId"`
 
 	// The AES-encrypted SharedPayload.
 	EncryptedData []byte `json:"encryptedData"`
