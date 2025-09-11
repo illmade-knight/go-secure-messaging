@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/illmade-knight/routing-service/pkg/urn"
+	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
