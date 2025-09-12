@@ -117,3 +117,19 @@ func (u *URN) UnmarshalJSON(data []byte) error {
 
 	return ErrInvalidFormat
 }
+
+func (u URN) EntityType() string {
+	return u.entityType
+}
+
+func (u URN) EntityID() string {
+	return u.entityID
+}
+
+func (u URN) Scheme() string {
+	return u.scheme
+}
+
+func (u URN) Namespace() string {
+	return u.namespace
+}
