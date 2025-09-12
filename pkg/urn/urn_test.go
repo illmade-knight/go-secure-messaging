@@ -9,35 +9,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestNewURN validates the behavior of the new constructor function.
+func TestNewURN(t *testing.T) {
+	t.Run("Valid URN", func(t *testing.T) {
+		u, err := urn.New("user", "user-123")
+		require.NoError(t, err)
+		assert.Equal(t, "urn:sm:user:user-123", u.String())
+	})
+
+	t.Run("Empty Entity Type", func(t *testing.T) {
+		_, err := urn.New("", "user-123")
+		require.Error(t, err)
+		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
+	})
+
+	t.Run("Empty Entity ID", func(t *testing.T) {
+		_, err := urn.New("user", "")
+		require.Error(t, err)
+		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
+	})
+}
+
 func TestParse(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         string
-		expectedURN   urn.URN
+		expectedURN   string // We check the string representation
 		expectErr     bool
 		expectedErrIs error
 	}{
 		{
-			name:  "Valid User URN",
-			input: "urn:sm:user:user-123",
-			expectedURN: urn.URN{
-				Scheme:     "urn",
-				Namespace:  "sm",
-				EntityType: "user",
-				EntityID:   "user-123",
-			},
-			expectErr: false,
+			name:        "Valid User URN",
+			input:       "urn:sm:user:user-123",
+			expectedURN: "urn:sm:user:user-123",
+			expectErr:   false,
 		},
 		{
-			name:  "Valid Device URN",
-			input: "urn:sm:device:uuid-abc-123",
-			expectedURN: urn.URN{
-				Scheme:     "urn",
-				Namespace:  "sm",
-				EntityType: "device",
-				EntityID:   "uuid-abc-123",
-			},
-			expectErr: false,
+			name:        "Valid Device URN",
+			input:       "urn:sm:device:uuid-abc-123",
+			expectedURN: "urn:sm:device:uuid-abc-123",
+			expectErr:   false,
 		},
 		{
 			name:          "Invalid Scheme",
@@ -93,56 +104,46 @@ func TestParse(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.expectedURN, parsedURN)
-				// Test the String() method as well
-				assert.Equal(t, tc.input, parsedURN.String())
+				assert.Equal(t, tc.expectedURN, parsedURN.String())
 			}
 		})
 	}
 }
 
 func TestJSONMarshaling(t *testing.T) {
-	u := urn.URN{
-		Scheme:     "urn",
-		Namespace:  "sm",
-		EntityType: "user",
-		EntityID:   "user-123",
-	}
+	u, err := urn.New("user", "user-123")
+	require.NoError(t, err)
 	expectedJSON := `"urn:sm:user:user-123"`
 
 	jsonData, err := json.Marshal(u)
 	require.NoError(t, err)
 	assert.Equal(t, expectedJSON, string(jsonData))
+
+	// Test marshaling a zero-value URN
+	var zeroURN urn.URN
+	zeroJSON, err := json.Marshal(zeroURN)
+	require.NoError(t, err)
+	assert.Equal(t, "null", string(zeroJSON))
 }
 
 func TestJSONUnmarshaling(t *testing.T) {
 	testCases := []struct {
 		name        string
 		jsonInput   string
-		expectedURN urn.URN
+		expectedURN string
 		expectErr   bool
 	}{
 		{
-			name:      "Unmarshal Full URN",
-			jsonInput: `"urn:sm:user:user-123"`,
-			expectedURN: urn.URN{
-				Scheme:     "urn",
-				Namespace:  "sm",
-				EntityType: "user",
-				EntityID:   "user-123",
-			},
-			expectErr: false,
+			name:        "Unmarshal Full URN",
+			jsonInput:   `"urn:sm:user:user-123"`,
+			expectedURN: "urn:sm:user:user-123",
+			expectErr:   false,
 		},
 		{
-			name:      "Unmarshal Legacy UserID (Backward Compatibility)",
-			jsonInput: `"legacy-user-456"`,
-			expectedURN: urn.URN{
-				Scheme:     "urn",
-				Namespace:  "sm",
-				EntityType: "user",
-				EntityID:   "legacy-user-456",
-			},
-			expectErr: false,
+			name:        "Unmarshal Legacy UserID (Backward Compatibility)",
+			jsonInput:   `"legacy-user-456"`,
+			expectedURN: "urn:sm:user:legacy-user-456",
+			expectErr:   false,
 		},
 		{
 			name:      "Unmarshal Invalid URN",
@@ -170,7 +171,7 @@ func TestJSONUnmarshaling(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.expectedURN, u)
+				assert.Equal(t, tc.expectedURN, u.String())
 			}
 		})
 	}

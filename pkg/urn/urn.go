@@ -1,6 +1,8 @@
-// Package urn provides a type-safe implementation for handling Uniform
-// Resource Names (URNs) within the messaging ecosystem. It ensures that all
-// entity identifiers are validated and consistently structured.
+// REFACTOR: This file is updated to introduce a validating constructor, New(),
+// which prevents the creation of invalid URN structs. The Parse function is
+// now a wrapper around this constructor, and the struct fields are unexported
+// to enforce the use of the constructor.
+
 package urn
 
 import (
@@ -11,107 +13,111 @@ import (
 )
 
 const (
-	urnScheme      = "urn"
-	urnNamespace   = "sm" // Secure Messaging
+	// Scheme is the required scheme for all URNs in the system.
+	Scheme = "urn"
+	// Namespace is the required namespace for all URNs in the system.
+	Namespace      = "sm" // Secure Messaging
 	urnParts       = 4
 	urnDelimiter   = ":"
 	EntityTypeUser = "user"
 )
 
 var (
-	// ErrInvalidFormat is returned when a string does not conform to the
-	// expected URN structure.
+	// ErrInvalidFormat is returned when a string or components do not conform
+	// to the expected URN structure.
 	ErrInvalidFormat = errors.New("invalid URN format")
 )
 
 // URN represents a parsed, validated Uniform Resource Name.
-// It is the standard identifier for all addressable entities in the system.
+// Its fields are unexported to ensure that all instances are created via the
+// validating New() constructor.
 type URN struct {
-	Scheme     string
-	Namespace  string
-	EntityType string
-	EntityID   string
+	scheme     string
+	namespace  string
+	entityType string
+	entityID   string
+}
+
+// New is the constructor for a URN. It validates that the provided entity type
+// and ID are not empty, ensuring that no invalid URNs can be created.
+func New(entityType, entityID string) (URN, error) {
+	if entityType == "" {
+		return URN{}, fmt.Errorf("%w: entity type cannot be empty", ErrInvalidFormat)
+	}
+	if entityID == "" {
+		return URN{}, fmt.Errorf("%w: entity ID cannot be empty", ErrInvalidFormat)
+	}
+	return URN{
+		scheme:     Scheme,
+		namespace:  Namespace,
+		entityType: entityType,
+		entityID:   entityID,
+	}, nil
 }
 
 // Parse converts a raw string into a structured URN, validating its format.
-// It expects the format "urn:sm:<type>:<id>".
 func Parse(s string) (URN, error) {
 	parts := strings.Split(s, urnDelimiter)
 	if len(parts) != urnParts {
 		return URN{}, fmt.Errorf("%w: expected %d parts, but got %d", ErrInvalidFormat, urnParts, len(parts))
 	}
 
-	if parts[0] != urnScheme {
-		return URN{}, fmt.Errorf("%w: invalid scheme '%s', expected '%s'", ErrInvalidFormat, parts[0], urnScheme)
+	if parts[0] != Scheme {
+		return URN{}, fmt.Errorf("%w: invalid scheme '%s', expected '%s'", ErrInvalidFormat, parts[0], Scheme)
 	}
 
-	if parts[1] != urnNamespace {
-		return URN{}, fmt.Errorf("%w: invalid namespace '%s', expected '%s'", ErrInvalidFormat, parts[1], urnNamespace)
+	if parts[1] != Namespace {
+		return URN{}, fmt.Errorf("%w: invalid namespace '%s', expected '%s'", ErrInvalidFormat, parts[1], Namespace)
 	}
 
-	if parts[2] == "" {
-		return URN{}, fmt.Errorf("%w: entity type cannot be empty", ErrInvalidFormat)
-	}
-
-	if parts[3] == "" {
-		return URN{}, fmt.Errorf("%w: entity ID cannot be empty", ErrInvalidFormat)
-	}
-
-	return URN{
-		Scheme:     parts[0],
-		Namespace:  parts[1],
-		EntityType: parts[2],
-		EntityID:   parts[3],
-	}, nil
+	// Delegate final validation to the constructor.
+	return New(parts[2], parts[3])
 }
 
 // String reassembles the URN into its canonical string representation.
 func (u URN) String() string {
-	return strings.Join([]string{u.Scheme, u.Namespace, u.EntityType, u.EntityID}, urnDelimiter)
+	return strings.Join([]string{u.scheme, u.namespace, u.entityType, u.entityID}, urnDelimiter)
 }
 
 // IsZero returns true if the URN has not been initialized.
 func (u URN) IsZero() bool {
-	return u.Scheme == "" && u.Namespace == "" && u.EntityType == "" && u.EntityID == ""
+	return u.scheme == "" && u.namespace == "" && u.entityType == "" && u.entityID == ""
 }
 
 // MarshalJSON implements the json.Marshaler interface.
 func (u URN) MarshalJSON() ([]byte, error) {
+	if u.IsZero() {
+		// Prevent serialization of an uninitialized URN.
+		return []byte("null"), nil
+	}
 	return json.Marshal(u.String())
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
-// This is the core of our backward-compatibility strategy. It can unmarshal
-// both a full URN string ("urn:sm:user:123") and a legacy userID string ("123"),
-// defaulting the legacy ID to a user entity.
 func (u *URN) UnmarshalJSON(data []byte) error {
 	var s string
-	err := json.Unmarshal(data, &s)
-	if err != nil {
+	if err := json.Unmarshal(data, &s); err != nil {
 		return fmt.Errorf("URN should be a string, but got %s: %w", string(data), err)
 	}
 
-	// REFACTOR: If the string looks like a URN, it MUST be valid.
-	if strings.HasPrefix(s, urnScheme+urnDelimiter) {
+	if strings.HasPrefix(s, Scheme+urnDelimiter) {
 		parsedURN, parseErr := Parse(s)
 		if parseErr != nil {
-			return parseErr // It tried to be a URN and failed.
+			return parseErr
 		}
 		*u = parsedURN
 		return nil
 	}
 
-	// If it's not empty and doesn't look like a URN, treat it as a legacy ID.
 	if s != "" {
-		*u = URN{
-			Scheme:     urnScheme,
-			Namespace:  urnNamespace,
-			EntityType: EntityTypeUser,
-			EntityID:   s,
+		// For legacy IDs, we now use the validating constructor.
+		legacyURN, err := New(EntityTypeUser, s)
+		if err != nil {
+			return err
 		}
+		*u = legacyURN
 		return nil
 	}
 
-	// The string was empty, which is invalid.
 	return ErrInvalidFormat
 }
