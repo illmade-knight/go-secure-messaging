@@ -14,9 +14,9 @@ import (
 
 const (
 	// Scheme is the required scheme for all URNs in the system.
-	Scheme = "urn"
+	Scheme          = "urn"
+	SecureMessaging = "sm"
 	// Namespace is the required namespace for all URNs in the system.
-	Namespace      = "sm" // Secure Messaging
 	urnParts       = 4
 	urnDelimiter   = ":"
 	EntityTypeUser = "user"
@@ -40,7 +40,7 @@ type URN struct {
 
 // New is the constructor for a URN. It validates that the provided entity type
 // and ID are not empty, ensuring that no invalid URNs can be created.
-func New(entityType, entityID string) (URN, error) {
+func New(entityType, entityID, namespace string) (URN, error) {
 	if entityType == "" {
 		return URN{}, fmt.Errorf("%w: entity type cannot be empty", ErrInvalidFormat)
 	}
@@ -49,7 +49,7 @@ func New(entityType, entityID string) (URN, error) {
 	}
 	return URN{
 		scheme:     Scheme,
-		namespace:  Namespace,
+		namespace:  namespace,
 		entityType: entityType,
 		entityID:   entityID,
 	}, nil
@@ -66,12 +66,8 @@ func Parse(s string) (URN, error) {
 		return URN{}, fmt.Errorf("%w: invalid scheme '%s', expected '%s'", ErrInvalidFormat, parts[0], Scheme)
 	}
 
-	if parts[1] != Namespace {
-		return URN{}, fmt.Errorf("%w: invalid namespace '%s', expected '%s'", ErrInvalidFormat, parts[1], Namespace)
-	}
-
 	// Delegate final validation to the constructor.
-	return New(parts[2], parts[3])
+	return New(parts[1], parts[2], parts[3])
 }
 
 // String reassembles the URN into its canonical string representation.
@@ -111,7 +107,7 @@ func (u *URN) UnmarshalJSON(data []byte) error {
 
 	if s != "" {
 		// For legacy IDs, we now use the validating constructor.
-		legacyURN, err := New(EntityTypeUser, s)
+		legacyURN, err := New(EntityTypeUser, s, SecureMessaging)
 		if err != nil {
 			return err
 		}

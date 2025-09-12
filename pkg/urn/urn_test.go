@@ -12,19 +12,19 @@ import (
 // TestNewURN validates the behavior of the new constructor function.
 func TestNewURN(t *testing.T) {
 	t.Run("Valid URN", func(t *testing.T) {
-		u, err := urn.New("user", "user-123")
+		u, err := urn.New("user", "user-123", urn.SecureMessaging)
 		require.NoError(t, err)
 		assert.Equal(t, "urn:sm:user:user-123", u.String())
 	})
 
 	t.Run("Empty Entity Type", func(t *testing.T) {
-		_, err := urn.New("", "user-123")
+		_, err := urn.New("", "user-123", urn.SecureMessaging)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
 	})
 
 	t.Run("Empty Entity ID", func(t *testing.T) {
-		_, err := urn.New("user", "")
+		_, err := urn.New("user", "", "")
 		require.Error(t, err)
 		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
 	})
@@ -111,7 +111,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestJSONMarshaling(t *testing.T) {
-	u, err := urn.New("user", "user-123")
+	u, err := urn.New("user", "user-123", urn.SecureMessaging)
 	require.NoError(t, err)
 	expectedJSON := `"urn:sm:user:user-123"`
 
