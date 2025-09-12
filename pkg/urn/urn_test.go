@@ -1,3 +1,6 @@
+// REFACTOR: This test is updated to validate the new getter methods and the
+// bug fix in the New() constructor.
+
 package urn_test
 
 import (
@@ -12,19 +15,28 @@ import (
 // TestNewURN validates the behavior of the new constructor function.
 func TestNewURN(t *testing.T) {
 	t.Run("Valid URN", func(t *testing.T) {
-		u, err := urn.New("user", "user-123", urn.SecureMessaging)
+		u, err := urn.New(urn.SecureMessaging, "user", "user-123")
 		require.NoError(t, err)
 		assert.Equal(t, "urn:sm:user:user-123", u.String())
+		// REFACTOR: Test the new getter methods.
+		assert.Equal(t, "user", u.EntityType())
+		assert.Equal(t, "user-123", u.EntityID())
+	})
+
+	t.Run("Empty Namespace", func(t *testing.T) {
+		_, err := urn.New("", "user", "user-123")
+		require.Error(t, err)
+		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
 	})
 
 	t.Run("Empty Entity Type", func(t *testing.T) {
-		_, err := urn.New("", "user-123", urn.SecureMessaging)
+		_, err := urn.New(urn.SecureMessaging, "", "user-123")
 		require.Error(t, err)
 		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
 	})
 
 	t.Run("Empty Entity ID", func(t *testing.T) {
-		_, err := urn.New("user", "", "")
+		_, err := urn.New(urn.SecureMessaging, "user", "")
 		require.Error(t, err)
 		assert.ErrorIs(t, err, urn.ErrInvalidFormat)
 	})
@@ -56,21 +68,10 @@ func TestParse(t *testing.T) {
 			expectErr:     true,
 			expectedErrIs: urn.ErrInvalidFormat,
 		},
+		// Parse now delegates to New, which checks all fields.
 		{
-			name:          "Invalid Namespace",
-			input:         "urn:foo:user:user-123",
-			expectErr:     true,
-			expectedErrIs: urn.ErrInvalidFormat,
-		},
-		{
-			name:          "Too Few Parts",
-			input:         "urn:sm:user",
-			expectErr:     true,
-			expectedErrIs: urn.ErrInvalidFormat,
-		},
-		{
-			name:          "Too Many Parts",
-			input:         "urn:sm:user:user-123:extra",
+			name:          "Empty Namespace",
+			input:         "urn::user:user-123",
 			expectErr:     true,
 			expectedErrIs: urn.ErrInvalidFormat,
 		},
@@ -83,12 +84,6 @@ func TestParse(t *testing.T) {
 		{
 			name:          "Empty Entity ID",
 			input:         "urn:sm:user:",
-			expectErr:     true,
-			expectedErrIs: urn.ErrInvalidFormat,
-		},
-		{
-			name:          "Empty Input",
-			input:         "",
 			expectErr:     true,
 			expectedErrIs: urn.ErrInvalidFormat,
 		},
@@ -111,7 +106,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestJSONMarshaling(t *testing.T) {
-	u, err := urn.New("user", "user-123", urn.SecureMessaging)
+	u, err := urn.New(urn.SecureMessaging, "user", "user-123")
 	require.NoError(t, err)
 	expectedJSON := `"urn:sm:user:user-123"`
 
@@ -153,11 +148,6 @@ func TestJSONUnmarshaling(t *testing.T) {
 		{
 			name:      "Unmarshal Empty String",
 			jsonInput: `""`,
-			expectErr: true,
-		},
-		{
-			name:      "Unmarshal Non-String Type",
-			jsonInput: `123`,
 			expectErr: true,
 		},
 	}

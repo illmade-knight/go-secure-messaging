@@ -1,7 +1,6 @@
-// REFACTOR: This file is updated to introduce a validating constructor, New(),
-// which prevents the creation of invalid URN structs. The Parse function is
-// now a wrapper around this constructor, and the struct fields are unexported
-// to enforce the use of the constructor.
+// REFACTOR: This file is updated to fix the field assignment bug in the New()
+// constructor. It also adds public getter methods to allow safe inspection
+// of the URN's components.
 
 package urn
 
@@ -14,11 +13,12 @@ import (
 
 const (
 	// Scheme is the required scheme for all URNs in the system.
-	Scheme          = "urn"
+	Scheme = "urn"
+	// SecureMessaging is the required namespace for all URNs in the system.
 	SecureMessaging = "sm"
-	// Namespace is the required namespace for all URNs in the system.
-	urnParts       = 4
-	urnDelimiter   = ":"
+	urnParts        = 4
+	urnDelimiter    = ":"
+	// EntityTypeUser is a standard entity type for users.
 	EntityTypeUser = "user"
 )
 
@@ -38,15 +38,19 @@ type URN struct {
 	entityID   string
 }
 
-// New is the constructor for a URN. It validates that the provided entity type
-// and ID are not empty, ensuring that no invalid URNs can be created.
-func New(entityType, entityID, namespace string) (URN, error) {
+// New is the constructor for a URN. It validates that the provided namespace,
+// entity type, and ID are not empty, ensuring no invalid URNs can be created.
+func New(namespace, entityType, entityID string) (URN, error) {
+	if namespace == "" {
+		return URN{}, fmt.Errorf("%w: namespace cannot be empty", ErrInvalidFormat)
+	}
 	if entityType == "" {
 		return URN{}, fmt.Errorf("%w: entity type cannot be empty", ErrInvalidFormat)
 	}
 	if entityID == "" {
 		return URN{}, fmt.Errorf("%w: entity ID cannot be empty", ErrInvalidFormat)
 	}
+	// REFACTOR: Corrected the field assignments.
 	return URN{
 		scheme:     Scheme,
 		namespace:  namespace,
@@ -75,6 +79,16 @@ func (u URN) String() string {
 	return strings.Join([]string{u.scheme, u.namespace, u.entityType, u.entityID}, urnDelimiter)
 }
 
+// EntityType returns the type of the entity (e.g., "user", "device").
+func (u URN) EntityType() string {
+	return u.entityType
+}
+
+// EntityID returns the unique identifier for the entity.
+func (u URN) EntityID() string {
+	return u.entityID
+}
+
 // IsZero returns true if the URN has not been initialized.
 func (u URN) IsZero() bool {
 	return u.scheme == "" && u.namespace == "" && u.entityType == "" && u.entityID == ""
@@ -83,7 +97,6 @@ func (u URN) IsZero() bool {
 // MarshalJSON implements the json.Marshaler interface.
 func (u URN) MarshalJSON() ([]byte, error) {
 	if u.IsZero() {
-		// Prevent serialization of an uninitialized URN.
 		return []byte("null"), nil
 	}
 	return json.Marshal(u.String())
@@ -106,8 +119,7 @@ func (u *URN) UnmarshalJSON(data []byte) error {
 	}
 
 	if s != "" {
-		// For legacy IDs, we now use the validating constructor.
-		legacyURN, err := New(EntityTypeUser, s, SecureMessaging)
+		legacyURN, err := New(SecureMessaging, EntityTypeUser, s)
 		if err != nil {
 			return err
 		}
@@ -116,20 +128,4 @@ func (u *URN) UnmarshalJSON(data []byte) error {
 	}
 
 	return ErrInvalidFormat
-}
-
-func (u URN) EntityType() string {
-	return u.entityType
-}
-
-func (u URN) EntityID() string {
-	return u.entityID
-}
-
-func (u URN) Scheme() string {
-	return u.scheme
-}
-
-func (u URN) Namespace() string {
-	return u.namespace
 }
