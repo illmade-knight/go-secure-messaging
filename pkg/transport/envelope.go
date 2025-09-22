@@ -1,6 +1,11 @@
 package transport
 
-import "github.com/illmade-knight/go-secure-messaging/pkg/urn"
+import (
+	"fmt"
+
+	envelope_v1 "github.com/illmade-knight/go-action-intention-protos/proto"
+	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
+)
 
 type SecureEnvelope struct {
 	SenderID    urn.URN `json:"senderId"`
@@ -15,4 +20,44 @@ type SecureEnvelope struct {
 
 	// The signature of the EncryptedData.
 	Signature []byte `json:"signature"`
+}
+
+func ToProto(nativeEnvelope *SecureEnvelope) *envelope_v1.SecureEnvelopePb {
+	if nativeEnvelope == nil {
+		return nil
+	}
+
+	return &envelope_v1.SecureEnvelopePb{
+		SenderId:              nativeEnvelope.SenderID.String(),
+		RecipientId:           nativeEnvelope.RecipientID.String(),
+		MessageId:             nativeEnvelope.MessageID,
+		EncryptedData:         nativeEnvelope.EncryptedData,
+		EncryptedSymmetricKey: nativeEnvelope.EncryptedSymmetricKey,
+		Signature:             nativeEnvelope.Signature,
+	}
+}
+
+func FromProto(protoEnvelope *envelope_v1.SecureEnvelopePb) (*SecureEnvelope, error) {
+	if protoEnvelope == nil {
+		return nil, nil
+	}
+
+	senderURN, err := urn.Parse(protoEnvelope.GetSenderId())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sender URN: %w", err)
+	}
+
+	recipientURN, err := urn.Parse(protoEnvelope.GetRecipientId())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse recipient URN: %w", err)
+	}
+
+	return &SecureEnvelope{
+		SenderID:              senderURN,
+		RecipientID:           recipientURN,
+		MessageID:             protoEnvelope.GetMessageId(),
+		EncryptedData:         protoEnvelope.GetEncryptedData(),
+		EncryptedSymmetricKey: protoEnvelope.GetEncryptedSymmetricKey(),
+		Signature:             protoEnvelope.GetSignature(),
+	}, nil
 }
