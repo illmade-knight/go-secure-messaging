@@ -2,8 +2,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/illmade-knight/go-action-intention-protos v0.0.0-20250921231558-50a0338c2c46 h1:cFNRz6fuJyyZGVAQ5+r+g/jJ/sVsYefPe4+fsZpduuo=
-github.com/illmade-knight/go-action-intention-protos v0.0.0-20250921231558-50a0338c2c46/go.mod h1:+77ByzHRlT19EfIZ0FfaaPUjMBKn1q+PsS6Dj3c68ts=
+github.com/illmade-knight/go-action-intention-protos v0.0.0-20250922102316-03a63d99a0e7 h1:8JyellDCTOWgY2TOt9R3BSae2Nxg/rz9R2G5E/M8DPY=
+github.com/illmade-knight/go-action-intention-protos v0.0.0-20250922102316-03a63d99a0e7/go.mod h1:y83MJi+b9jyxpxgoZZ8Z94OVHqSmoX3fhsULxc1c7Xs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
