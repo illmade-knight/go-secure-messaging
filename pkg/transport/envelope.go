@@ -7,6 +7,11 @@ import (
 	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
 )
 
+// Re-export the Protobuf type with a convenient alias.
+// Now, any project that imports this 'transport' package can use
+// 'transport.SecureEnvelopePb' without needing to import the long proto path.
+type SecureEnvelopePb = envelope_v1.SecureEnvelopePb
+
 type SecureEnvelope struct {
 	SenderID    urn.URN `json:"senderId"`
 	RecipientID urn.URN `json:"recipientId"`
@@ -22,7 +27,7 @@ type SecureEnvelope struct {
 	Signature []byte `json:"signature"`
 }
 
-func ToProto(nativeEnvelope *SecureEnvelope) *envelope_v1.SecureEnvelopePb {
+func ToProto(nativeEnvelope *SecureEnvelope) *SecureEnvelopePb {
 	if nativeEnvelope == nil {
 		return nil
 	}
@@ -37,7 +42,7 @@ func ToProto(nativeEnvelope *SecureEnvelope) *envelope_v1.SecureEnvelopePb {
 	}
 }
 
-func FromProto(protoEnvelope *envelope_v1.SecureEnvelopePb) (*SecureEnvelope, error) {
+func FromProto(protoEnvelope *SecureEnvelopePb) (*SecureEnvelope, error) {
 	if protoEnvelope == nil {
 		return nil, nil
 	}
