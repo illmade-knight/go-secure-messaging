@@ -3,7 +3,7 @@ module github.com/illmade-knight/go-secure-messaging
 go 1.24
 
 require (
-	github.com/illmade-knight/go-action-intention-protos v0.0.0-20250922102316-03a63d99a0e7
+	github.com/illmade-knight/go-action-intention-protos v1.0.23
 	github.com/stretchr/testify v1.11.1
 )
 
