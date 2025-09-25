@@ -3,7 +3,7 @@ package transport
 import (
 	"fmt"
 
-	envelopev1 "github.com/illmade-knight/go-action-intention-protos/gen/go/proto"
+	envelopev1 "github.com/illmade-knight/go-action-intention-protos/gen/go/proto/sm/v1"
 	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
 )
 
