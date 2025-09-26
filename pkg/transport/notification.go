@@ -13,6 +13,7 @@ import (
 // without needing to import the long Protobuf package path.
 type NotificationRequestPb = notificationv1.NotificationRequestPb
 type DeviceTokenPb = notificationv1.DeviceTokenPb
+type NotificationRequestPbContent = notificationv1.NotificationRequestPb_Content
 
 // DeviceToken represents a push notification token for a user's device.
 // This is the Go-native counterpart to the DeviceTokenPb message.
