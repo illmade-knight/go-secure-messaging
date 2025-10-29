@@ -1,5 +1,8 @@
 // REFACTOR: This test is updated to validate the new getter methods and the
 // bug fix in the New() constructor.
+//
+// ADDED: This test is now updated to validate the new behavior for
+// zero-value URNs and empty strings in Parse(), String(), and UnmarshalJSON().
 
 package urn_test
 
@@ -42,6 +45,21 @@ func TestNewURN(t *testing.T) {
 	})
 }
 
+// TestString validates the String() method, including the zero-value fix.
+func TestString(t *testing.T) {
+	t.Run("Valid URN", func(t *testing.T) {
+		u, err := urn.New(urn.SecureMessaging, "user", "user-123")
+		require.NoError(t, err)
+		assert.Equal(t, "urn:sm:user:user-123", u.String())
+	})
+
+	t.Run("Zero-value URN", func(t *testing.T) {
+		var u urn.URN
+		assert.Equal(t, "", u.String(), "A zero-value URN should serialize to an empty string")
+		assert.True(t, u.IsZero())
+	})
+}
+
 func TestParse(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -63,8 +81,20 @@ func TestParse(t *testing.T) {
 			expectErr:   false,
 		},
 		{
+			name:        "Parse Empty String (FIXED BEHAVIOR)",
+			input:       "",
+			expectedURN: "", // A zero-value URN's string rep is ""
+			expectErr:   false,
+		},
+		{
 			name:          "Invalid Scheme",
 			input:         "foo:sm:user:user-123",
+			expectErr:     true,
+			expectedErrIs: urn.ErrInvalidFormat,
+		},
+		{
+			name:          "Invalid string ':::' (too few parts)",
+			input:         ":::",
 			expectErr:     true,
 			expectedErrIs: urn.ErrInvalidFormat,
 		},
@@ -100,6 +130,9 @@ func TestParse(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expectedURN, parsedURN.String())
+				if tc.input == "" {
+					assert.True(t, parsedURN.IsZero())
+				}
 			}
 		})
 	}
@@ -115,6 +148,7 @@ func TestJSONMarshaling(t *testing.T) {
 	assert.Equal(t, expectedJSON, string(jsonData))
 
 	// Test marshaling a zero-value URN
+	// This works because MarshalJSON has an explicit IsZero() check.
 	var zeroURN urn.URN
 	zeroJSON, err := json.Marshal(zeroURN)
 	require.NoError(t, err)
@@ -125,8 +159,9 @@ func TestJSONUnmarshaling(t *testing.T) {
 	testCases := []struct {
 		name        string
 		jsonInput   string
-		expectedURN string
+		expectedURN string // String representation
 		expectErr   bool
+		expectZero  bool // Explicitly check for zero-value
 	}{
 		{
 			name:        "Unmarshal Full URN",
@@ -146,9 +181,11 @@ func TestJSONUnmarshaling(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:      "Unmarshal Empty String",
-			jsonInput: `""`,
-			expectErr: true,
+			name:        "Unmarshal Empty String (FIXED BEHAVIOR)",
+			jsonInput:   `""`,
+			expectedURN: "",
+			expectErr:   false,
+			expectZero:  true,
 		},
 	}
 
@@ -162,6 +199,9 @@ func TestJSONUnmarshaling(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expectedURN, u.String())
+				if tc.expectZero {
+					assert.True(t, u.IsZero())
+				}
 			}
 		})
 	}

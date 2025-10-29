@@ -1,6 +1,9 @@
 // REFACTOR: This file is updated to fix the field assignment bug in the New()
 // constructor. It also adds public getter methods to allow safe inspection
 // of the URN's components.
+//
+// ADDED: This file is now updated to gracefully handle empty strings
+// and zero-value URNs, making ToProto/FromProto compatible.
 
 package urn
 
@@ -20,6 +23,8 @@ const (
 	urnDelimiter    = ":"
 	// EntityTypeUser is a standard entity type for users.
 	EntityTypeUser = "user"
+	// EntityTypeGroup is a standard entity type for groups.
+	EntityTypeGroup = "group"
 )
 
 var (
@@ -60,7 +65,15 @@ func New(namespace, entityType, entityID string) (URN, error) {
 }
 
 // Parse converts a raw string into a structured URN, validating its format.
+//
+// FIXED: Now correctly handles an empty string by returning a zero-value URN
+// instead of an error. This is required for transport.FromProto.
 func Parse(s string) (URN, error) {
+	// Handle the zero-value case
+	if s == "" {
+		return URN{}, nil
+	}
+
 	parts := strings.Split(s, urnDelimiter)
 	if len(parts) != urnParts {
 		return URN{}, fmt.Errorf("%w: expected %d parts, but got %d", ErrInvalidFormat, urnParts, len(parts))
@@ -75,7 +88,13 @@ func Parse(s string) (URN, error) {
 }
 
 // String reassembles the URN into its canonical string representation.
+//
+// FIXED: A zero-value URN now serializes to an empty string ""
+// instead of ":::". This is required for transport.ToProto.
 func (u URN) String() string {
+	if u.IsZero() {
+		return ""
+	}
 	return strings.Join([]string{u.scheme, u.namespace, u.entityType, u.entityID}, urnDelimiter)
 }
 
@@ -95,6 +114,9 @@ func (u URN) IsZero() bool {
 }
 
 // MarshalJSON implements the json.Marshaler interface.
+//
+// FIXED: This now correctly handles the `u.String()` returning "" for a zero-value
+// URN, by explicitly checking IsZero() first.
 func (u URN) MarshalJSON() ([]byte, error) {
 	if u.IsZero() {
 		return []byte("null"), nil
@@ -109,12 +131,20 @@ func (u *URN) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("URN should be a string, but got %s: %w", string(data), err)
 	}
 
+	// FIXED: This logic now works because Parse("") returns a valid,
+	// zero-value URN instead of an error.
 	if strings.HasPrefix(s, Scheme+urnDelimiter) {
 		parsedURN, parseErr := Parse(s)
 		if parseErr != nil {
 			return parseErr
 		}
 		*u = parsedURN
+		return nil
+	}
+
+	// FIXED: Handle the empty string case from JSON
+	if s == "" {
+		*u = URN{}
 		return nil
 	}
 
