@@ -4,16 +4,16 @@ package transport
 import (
 	"fmt"
 
-	notificationv1 "github.com/illmade-knight/go-action-intention-protos/gen/go/proto/notification/v1"
 	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
+	smv1 "github.com/tinywideclouds/go-action-intention-protos/src/action_intention/notification/v1"
 )
 
 // Re-export the Protobuf types with convenient aliases.
 // Any project importing this 'transport' package can now use these types
 // without needing to import the long Protobuf package path.
-type NotificationRequestPb = notificationv1.NotificationRequestPb
-type DeviceTokenPb = notificationv1.DeviceTokenPb
-type NotificationRequestPbContent = notificationv1.NotificationRequestPb_Content
+type NotificationRequestPb = smv1.NotificationRequestPb
+type DeviceTokenPb = smv1.DeviceTokenPb
+type NotificationRequestPbContent = smv1.NotificationRequestPb_Content
 
 // DeviceToken represents a push notification token for a user's device.
 // This is the Go-native counterpart to the DeviceTokenPb message.
@@ -56,7 +56,7 @@ func NotificationRequestToProto(nativeReq *NotificationRequest) *NotificationReq
 	return &NotificationRequestPb{
 		RecipientId: nativeReq.RecipientID.String(),
 		Tokens:      protoTokens,
-		Content: &notificationv1.NotificationRequestPb_Content{
+		Content: &smv1.NotificationRequestPb_Content{
 			Title: nativeReq.Content.Title,
 			Body:  nativeReq.Content.Body,
 			Sound: nativeReq.Content.Sound,

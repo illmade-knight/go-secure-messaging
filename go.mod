@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/illmade-knight/go-action-intention-protos v1.0.35
 	github.com/stretchr/testify v1.11.1
+	github.com/tinywideclouds/go-action-intention-protos v0.0.0-20251029162430-fd543f6b267d
 )
 
 require (

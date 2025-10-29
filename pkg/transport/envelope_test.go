@@ -5,68 +5,85 @@ import (
 
 	"github.com/illmade-knight/go-secure-messaging/pkg/transport"
 	"github.com/illmade-knight/go-secure-messaging/pkg/urn"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestSecureEnvelopeConversions(t *testing.T) {
-	senderURN, err := urn.New("sm", "user", "sender-123")
-	require.NoError(t, err)
-	recipientURN, err := urn.New("sm", "user", "recipient-456")
-	require.NoError(t, err)
+func TestEnvelopeConversions(t *testing.T) {
+	senderURN, _ := urn.Parse("urn:sm:user:user-alice")
+	recipientURN, _ := urn.Parse("urn:sm:user:user-bob")
+	convURN, _ := urn.Parse("urn:sm:convo:alice-bob-123")
+	snippet := []byte("this is a test snippet")
 
 	nativeEnvelope := &transport.SecureEnvelope{
+		MessageID:             "msg-123",
 		SenderID:              senderURN,
 		RecipientID:           recipientURN,
-		MessageID:             "msg-789",
+		ConversationID:        convURN,
 		EncryptedData:         []byte("encrypted-data"),
 		EncryptedSymmetricKey: []byte("encrypted-key"),
-		Signature:             []byte("signature"),
+		Signature:             []byte("signature-data"),
+		EncryptedSnippet:      snippet,
 	}
 
-	t.Run("ToProto and FromProto Symmetry", func(t *testing.T) {
-		// 1. Convert native Go struct to Protobuf message
+	t.Run("Symmetry Test", func(t *testing.T) {
+		// Act
 		protoEnvelope := transport.ToProto(nativeEnvelope)
-
-		// Assert that the Protobuf message has the correct values
-		require.Equal(t, "urn:sm:user:sender-123", protoEnvelope.GetSenderId())
-		require.Equal(t, "urn:sm:user:recipient-456", protoEnvelope.GetRecipientId())
-		require.Equal(t, "msg-789", protoEnvelope.GetMessageId())
-		require.Equal(t, []byte("encrypted-data"), protoEnvelope.GetEncryptedData())
-		require.Equal(t, []byte("encrypted-key"), protoEnvelope.GetEncryptedSymmetricKey())
-		require.Equal(t, []byte("signature"), protoEnvelope.GetSignature())
-
-		// 2. Convert the Protobuf message back to the native Go struct
-		convertedNative, err := transport.FromProto(protoEnvelope)
+		roundTrippedEnvelope, err := transport.FromProto(protoEnvelope)
 		require.NoError(t, err)
 
-		// Assert that the round-trip conversion results in the original struct
-		require.Equal(t, nativeEnvelope, convertedNative)
+		// Assert
+		assert.Equal(t, nativeEnvelope, roundTrippedEnvelope)
+		// Explicitly check new byte slice
+		assert.Equal(t, nativeEnvelope.EncryptedSnippet, roundTrippedEnvelope.EncryptedSnippet)
 	})
 
-	t.Run("FromProto with Invalid URN", func(t *testing.T) {
-		protoEnvelope := transport.ToProto(nativeEnvelope)
-		protoEnvelope.SenderId = "invalid-urn" // Introduce an error
+	t.Run("FromProto Error Handling", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			proto         *transport.SecureEnvelopePb
+			expectedError string
+		}{
+			{
+				name: "Invalid SenderID",
+				proto: &transport.SecureEnvelopePb{
+					SenderId:    "not-a-valid-urn",
+					RecipientId: recipientURN.String(),
+				},
+				expectedError: "failed to parse sender id",
+			},
+			{
+				name: "Invalid RecipientID",
+				proto: &transport.SecureEnvelopePb{
+					SenderId:    senderURN.String(),
+					RecipientId: "not-a-valid-urn",
+				},
+				expectedError: "failed to parse recipient id",
+			},
+			{
+				name: "Invalid ConversationID",
+				proto: &transport.SecureEnvelopePb{
+					SenderId:       senderURN.String(),
+					RecipientId:    recipientURN.String(),
+					ConversationId: "not-a-valid-urn",
+				},
+				expectedError: "failed to parse conversation id",
+			},
+		}
 
-		_, err := transport.FromProto(protoEnvelope)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to parse sender URN")
-
-		// Reset for the next test
-		protoEnvelope.SenderId = "urn:sm:user:sender-123"
-		protoEnvelope.RecipientId = "invalid-urn"
-
-		_, err = transport.FromProto(protoEnvelope)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to parse recipient URN")
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := transport.FromProto(tc.proto)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+			})
+		}
 	})
 
-	t.Run("Handling Nil Inputs", func(t *testing.T) {
-		// ToProto should handle a nil input gracefully
-		require.Nil(t, transport.ToProto(nil))
-
-		// FromProto should also handle a nil input gracefully
-		converted, err := transport.FromProto(nil)
-		require.NoError(t, err)
-		require.Nil(t, converted)
+	t.Run("Nil Handling", func(t *testing.T) {
+		assert.Nil(t, transport.ToProto(nil))
+		native, err := transport.FromProto(nil)
+		assert.NoError(t, err)
+		assert.Nil(t, native)
 	})
 }
