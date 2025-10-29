@@ -16,7 +16,8 @@ type SecureEnvelope struct {
 	MessageID             string
 	SenderID              urn.URN
 	RecipientID           urn.URN
-	ConversationID        urn.URN // ADDED
+	ConversationID        urn.URN
+	GroupID               urn.URN
 	EncryptedData         []byte
 	EncryptedSymmetricKey []byte
 	Signature             []byte
@@ -32,6 +33,7 @@ func ToProto(native *SecureEnvelope) *SecureEnvelopePb {
 		MessageId:             native.MessageID,
 		SenderId:              native.SenderID.String(),
 		RecipientId:           native.RecipientID.String(),
+		GroupId:               native.GroupID.String(),
 		EncryptedData:         native.EncryptedData,
 		EncryptedSymmetricKey: native.EncryptedSymmetricKey,
 		Signature:             native.Signature,
@@ -57,8 +59,12 @@ func FromProto(proto *SecureEnvelopePb) (*SecureEnvelope, error) {
 		return nil, fmt.Errorf("failed to parse recipient id: %w", err)
 	}
 
-	// ADDED: Parse the ConversationID
-	convID, err := urn.Parse(proto.ConversationId)
+	groupID, err := urn.Parse(proto.GroupId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse group id: %w", err)
+	}
+
+	conversationID, err := urn.Parse(proto.ConversationId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse conversation id: %w", err)
 	}
@@ -67,7 +73,8 @@ func FromProto(proto *SecureEnvelopePb) (*SecureEnvelope, error) {
 		MessageID:             proto.MessageId,
 		SenderID:              senderID,
 		RecipientID:           recipientID,
-		ConversationID:        convID, // ADDED
+		GroupID:               groupID,
+		ConversationID:        conversationID,
 		EncryptedData:         proto.EncryptedData,
 		EncryptedSymmetricKey: proto.EncryptedSymmetricKey,
 		Signature:             proto.Signature,
