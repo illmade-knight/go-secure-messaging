@@ -7,9 +7,11 @@ import (
 	smv1 "github.com/tinywideclouds/go-action-intention-protos/src/action_intention/envelope/v1"
 )
 
-// Re-export the Protobuf types for external use.
+// --- Re-exported Protobuf types ---
 type EncryptedDigestPb = smv1.EncryptedDigestPb
 type EncryptedDigestItemPb = smv1.EncryptedDigestItemPb
+
+// --- EncryptedDigest (List) ---
 
 // EncryptedDigest is the idiomatic Go struct for a list of digest items.
 type EncryptedDigest struct {
@@ -59,13 +61,13 @@ func DigestFromProto(proto *EncryptedDigestPb) (*EncryptedDigest, error) {
 			continue // Skip nil items in the slice
 		}
 
-		convID, err := urn.Parse(item.ConversationId)
+		conversationID, err := urn.Parse(item.ConversationId)
 		if err != nil {
 			return nil, fmt.Errorf("item %d: failed to parse conversation id: %w", i, err)
 		}
 
 		nativeItems[i] = &EncryptedDigestItem{
-			ConversationID:        convID,
+			ConversationID:        conversationID,
 			EncryptedSnippet:      item.EncryptedSnippet,
 			EncryptedSymmetricKey: item.EncryptedSymmetricKey,
 		}

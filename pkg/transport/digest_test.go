@@ -10,18 +10,18 @@ import (
 )
 
 func TestDigestConversions(t *testing.T) {
-	convURN1, _ := urn.Parse("urn:sm:convo:convo-1")
-	convURN2, _ := urn.Parse("urn:sm:convo:convo-2")
+	conversationURN1, _ := urn.Parse("urn:sm:convo:convo-1")
+	conversationURN2, _ := urn.Parse("urn:sm:convo:convo-2")
 
 	nativeDigest := &transport.EncryptedDigest{
 		Items: []*transport.EncryptedDigestItem{
 			{
-				ConversationID:        convURN1,
+				ConversationID:        conversationURN1,
 				EncryptedSnippet:      []byte("snippet-1"),
 				EncryptedSymmetricKey: []byte("key-1"),
 			},
 			{
-				ConversationID:        convURN2,
+				ConversationID:        conversationURN2,
 				EncryptedSnippet:      []byte("snippet-2"),
 				EncryptedSymmetricKey: []byte("key-2"),
 			},
@@ -48,7 +48,7 @@ func TestDigestConversions(t *testing.T) {
 				name: "Invalid ConversationID in item",
 				proto: &transport.EncryptedDigestPb{
 					Items: []*transport.EncryptedDigestItemPb{
-						{ConversationId: convURN1.String()},
+						{ConversationId: conversationURN1.String()},
 						{ConversationId: "not-a-valid-urn"},
 					},
 				},
@@ -88,7 +88,7 @@ func TestDigestConversions(t *testing.T) {
 			Items: []*transport.EncryptedDigestItem{
 				nil,
 				{
-					ConversationID:        convURN1,
+					ConversationID:        conversationURN1,
 					EncryptedSnippet:      []byte("snippet-1"),
 					EncryptedSymmetricKey: []byte("key-1"),
 				},

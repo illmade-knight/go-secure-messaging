@@ -7,17 +7,19 @@ import (
 	smv1 "github.com/tinywideclouds/go-action-intention-protos/src/action_intention/envelope/v1"
 )
 
-// SecureEnvelopePb Re-export the Protobuf type for external use.
+// --- Re-exported Protobuf types ---
 type SecureEnvelopePb = smv1.SecureEnvelopePb
+type SecureEnvelopeListPb = smv1.SecureEnvelopeListPb // ADDED
+
+// --- SecureEnvelope (Single) ---
 
 // SecureEnvelope is the canonical, idiomatic Go struct for a message.
-// It uses URN types for identifiers.
 type SecureEnvelope struct {
 	MessageID             string
 	SenderID              urn.URN
 	RecipientID           urn.URN
-	ConversationID        urn.URN
-	GroupID               urn.URN
+	GroupID               urn.URN // ADDED (from our agreement)
+	ConversationID        urn.URN // ADDED
 	EncryptedData         []byte
 	EncryptedSymmetricKey []byte
 	Signature             []byte
@@ -33,17 +35,16 @@ func ToProto(native *SecureEnvelope) *SecureEnvelopePb {
 		MessageId:             native.MessageID,
 		SenderId:              native.SenderID.String(),
 		RecipientId:           native.RecipientID.String(),
-		GroupId:               native.GroupID.String(),
+		GroupId:               native.GroupID.String(),        // ADDED
+		ConversationId:        native.ConversationID.String(), // ADDED
 		EncryptedData:         native.EncryptedData,
 		EncryptedSymmetricKey: native.EncryptedSymmetricKey,
 		Signature:             native.Signature,
-		ConversationId:        native.ConversationID.String(), // ADDED
-		EncryptedSnippet:      native.EncryptedSnippet,        // ADDED
+		EncryptedSnippet:      native.EncryptedSnippet, // ADDED
 	}
 }
 
 // FromProto converts the Protobuf representation into the idiomatic Go struct.
-// It validates that the string identifiers are valid URNs.
 func FromProto(proto *SecureEnvelopePb) (*SecureEnvelope, error) {
 	if proto == nil {
 		return nil, nil
@@ -59,12 +60,12 @@ func FromProto(proto *SecureEnvelopePb) (*SecureEnvelope, error) {
 		return nil, fmt.Errorf("failed to parse recipient id: %w", err)
 	}
 
-	groupID, err := urn.Parse(proto.GroupId)
+	groupID, err := urn.Parse(proto.GroupId) // ADDED
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse group id: %w", err)
 	}
 
-	conversationID, err := urn.Parse(proto.ConversationId)
+	conversationID, err := urn.Parse(proto.ConversationId) // ADDED
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse conversation id: %w", err)
 	}
@@ -73,11 +74,50 @@ func FromProto(proto *SecureEnvelopePb) (*SecureEnvelope, error) {
 		MessageID:             proto.MessageId,
 		SenderID:              senderID,
 		RecipientID:           recipientID,
-		GroupID:               groupID,
-		ConversationID:        conversationID,
+		GroupID:               groupID,        // ADDED
+		ConversationID:        conversationID, // ADDED
 		EncryptedData:         proto.EncryptedData,
 		EncryptedSymmetricKey: proto.EncryptedSymmetricKey,
 		Signature:             proto.Signature,
 		EncryptedSnippet:      proto.EncryptedSnippet, // ADDED
+	}, nil
+}
+
+// --- SecureEnvelopeList (List) --- ADDED THIS SECTION ---
+
+// SecureEnvelopeList is the idiomatic Go struct for a list of envelopes.
+type SecureEnvelopeList struct {
+	Envelopes []*SecureEnvelope
+}
+
+// ListToProto converts the idiomatic Go list into its Protobuf representation.
+func ListToProto(native *SecureEnvelopeList) *SecureEnvelopeListPb {
+	if native == nil {
+		return nil
+	}
+	protoEnvelopes := make([]*SecureEnvelopePb, len(native.Envelopes))
+	for i, env := range native.Envelopes {
+		protoEnvelopes[i] = ToProto(env)
+	}
+	return &SecureEnvelopeListPb{
+		Envelopes: protoEnvelopes,
+	}
+}
+
+// ListFromProto converts the Protobuf list into the idiomatic Go struct.
+func ListFromProto(proto *SecureEnvelopeListPb) (*SecureEnvelopeList, error) {
+	if proto == nil {
+		return nil, nil
+	}
+	nativeEnvelopes := make([]*SecureEnvelope, len(proto.Envelopes))
+	for i, pEnv := range proto.Envelopes {
+		native, err := FromProto(pEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse envelope at index %d: %w", i, err)
+		}
+		nativeEnvelopes[i] = native
+	}
+	return &SecureEnvelopeList{
+		Envelopes: nativeEnvelopes,
 	}, nil
 }
